@@ -1,12 +1,12 @@
 import networkx as nx
 import numpy as np
 from random import sample
-from typing import Union, List
+from typing import Union, Tuple, List
 from functools import reduce
 
 from diffusion import ICModel
 from utils import deg
-
+from diffusion import DiffusionEnd
 
 class Env:
     def __init__(self, graph: Union[nx.Graph, nx.DiGraph], num_seeds: int, seed_min_deg: int, blocker_min_deg: int):
@@ -31,8 +31,8 @@ class Env:
 
     def _blocker_loss(self):
         if len(self.blocker_seq) < 3:
-            return sum(self.blocker_seq[-1])*0.5
-        return sum(reduce(np.bitwise_and, self.blocker_seq[-3:])) + sum(self.blocker_seq[-1])*0.5
+            return self.blocker_seq[-1]*0.5
+        return sum(reduce(np.bitwise_and, self.blocker_seq[-3:])) + self.blocker_seq[-1]*0.5
 
     def reset(self, seeds: np.ndarray = None) -> np.array:
         self.model = ICModel(self.graph)
@@ -49,11 +49,23 @@ class Env:
 
         return self.model.state
 
-    def step(self, blocker: Union[List, np.array] = None) -> np.array:
+    def step(self, blocker: Union[List, np.array] = None) -> Tuple[np.array, float, int]:
         if blocker is None:
             blocker = np.zeros(self.num_seeds).astype(np.bool_)
+        elif isinstance(blocker, list):
+            blocker = np.array(blocker)
+        elif isinstance(blocker, int):
+            blocker = np.array([blocker])
+        else:
+            raise TypeError(f'not supported for the input types: {type(blocker)}')
 
         self.blocker_seq.append(blocker)
-        state, active = self.model.diffusion(blocker)
-        reward = -sum(active) - self._blocker_loss()
-        return reward
+        try:
+            state, active = self.model.diffusion(blocker)
+            reward = -sum(active) - self._blocker_loss()
+            done = 0
+        except DiffusionEnd:
+            state = self.model.state
+            reward = 0
+            done = 1
+        return state, reward, done

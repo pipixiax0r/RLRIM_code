@@ -4,6 +4,7 @@ import networkx as nx
 
 from diffusion import DiffusionEnd
 from env import Env
+from model import PolicyGradientAgent, PolicyGradientNetwork
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -22,11 +23,7 @@ blocker_deg = 4
 env = Env(graph, num_seeds, seeds_deg, blocker_deg)
 print(env.model.prob_matrix)
 print(env.seed_candidate)
-env.reset(idx2array(env.seed_candidate[0], num_nodes))
-print(env.seeds)
-try:
-    for i in range(5):
-        print(env.step())
-        print(env.model.state)
-except DiffusionEnd:
-    pass
+print(f'num of blocker candidate : {len(env.blocker_candidate)}')
+
+network = PolicyGradientNetwork(num_nodes, 25, len(env.blocker_candidate))
+agent = PolicyGradientAgent(network)

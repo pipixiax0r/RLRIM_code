@@ -1,8 +1,8 @@
 import networkx as nx
+import numpy as np
 from random import sample
 from typing import Union, List
-
-import numpy as np
+from functools import reduce
 
 from diffusion import ICModel
 from utils import deg
@@ -29,6 +29,11 @@ class Env:
         else:
             raise TypeError(f'not supported for the input types: {type(graph)}')
 
+    def _blocker_loss(self):
+        if len(self.blocker_seq) < 3:
+            return sum(self.blocker_seq[-1])*0.5
+        return sum(reduce(np.bitwise_and, self.blocker_seq[-3:])) + sum(self.blocker_seq[-1])*0.5
+
     def reset(self, seeds: np.ndarray = None) -> np.array:
         self.model = ICModel(self.graph)
 
@@ -47,6 +52,8 @@ class Env:
     def step(self, blocker: Union[List, np.array] = None) -> np.array:
         if blocker is None:
             blocker = np.zeros(self.num_seeds).astype(np.bool_)
+
+        self.blocker_seq.append(blocker)
         state, active = self.model.diffusion(blocker)
-        reward = -sum(active) - sum(blocker)*0.5
+        reward = -sum(active) - self._blocker_loss()
         return reward

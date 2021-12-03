@@ -20,6 +20,7 @@ class Env:
         self.model = ICModel(self.graph)
         self.seeds = []
         self.blocker_seq = []
+        self.possible_blocker = set()
 
         if isinstance(graph, nx.Graph):
             self.seed_candidate = list(filter(lambda x: deg(x, graph) >= seed_min_deg, self.graph.nodes()))
@@ -30,10 +31,20 @@ class Env:
         else:
             raise TypeError(f'not supported for the input types: {type(graph)}')
 
-    def _blocker_loss(self):
+    def _block_time_loss(self):
+        """
+        预测节点连续封禁的损失
+        :return:
+        """
         if len(self.blocker_seq) < 3:
-            return self.blocker_seq[-1]*0.5
-        return sum(reduce(np.bitwise_and, self.blocker_seq[-3:])) + self.blocker_seq[-1]*0.5
+            return 0
+        return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-3:]))
+
+    def _block_invalid_loss(self):
+        """
+        预测节点无效时的损失
+        """
+        pass
 
     def reset(self, seeds: np.ndarray = None) -> np.array:
         self.model = ICModel(self.graph)
@@ -60,12 +71,12 @@ class Env:
         else:
             raise TypeError(f'not supported for the input types: {type(blocker)}')
 
-        self.blocker_seq.append(blocker)
         try:
-            blocker_one_hot = np.zeros(self.model.num_nodes)
+            blocker_one_hot = np.zeros(self.model.num_nodes).astype(np.bool_)
             blocker_one_hot[blocker] = 1
+            self.blocker_seq.append(blocker)
             state, active = self.model.diffusion(blocker_one_hot)
-            reward = float(-sum(active) - self._blocker_loss())
+            reward = float(-sum(active) - self._block_time_loss())
             done = 0
         except DiffusionEnd:
             state = self.model.state

@@ -43,7 +43,6 @@ class PolicyGradientAgent:
         distribution = Categorical(action_prob)
         action = distribution.sample()
         log_prob = distribution.log_prob(action)
-
         return action.item(), log_prob
 
     def save(self, path):

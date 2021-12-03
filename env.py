@@ -8,6 +8,7 @@ from diffusion import ICModel
 from utils import deg
 from diffusion import DiffusionEnd
 
+
 class Env:
     def __init__(self, graph: Union[nx.Graph, nx.DiGraph], num_seeds: int, seed_min_deg: int, blocker_min_deg: int):
         """
@@ -49,7 +50,7 @@ class Env:
 
         return self.model.state
 
-    def step(self, blocker: Union[List, np.array] = None) -> Tuple[np.array, float, int]:
+    def step(self, blocker: Union[int, List] = None) -> Tuple[np.array, float, int]:
         if blocker is None:
             blocker = np.zeros(self.num_seeds).astype(np.bool_)
         elif isinstance(blocker, list):
@@ -61,8 +62,10 @@ class Env:
 
         self.blocker_seq.append(blocker)
         try:
-            state, active = self.model.diffusion(blocker)
-            reward = -sum(active) - self._blocker_loss()
+            blocker_one_hot = np.zeros(self.model.num_nodes)
+            blocker_one_hot[blocker] = 1
+            state, active = self.model.diffusion(blocker_one_hot)
+            reward = float(-sum(active) - self._blocker_loss())
             done = 0
         except DiffusionEnd:
             state = self.model.state

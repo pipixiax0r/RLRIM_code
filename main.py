@@ -19,10 +19,11 @@ num_nodes = len(graph.nodes)
 num_seeds = 1
 num_blocker = 1
 seeds_deg = 8
-blocker_deg = 4
-num_batch = 500
-episode_per_batch = 5
+blocker_deg = 2
+num_batch = 2000
+episode_per_batch = 10
 num_diffusion = 5
+window_size = 3
 decay = 0.5
 
 env = Env(graph, num_seeds, seeds_deg, blocker_deg)
@@ -47,17 +48,19 @@ for batch in batch_bar:
             state, reward, done = env.step(action)
 
             log_probs.append(log_prob)
-            if len(rewards) >= 3:
-                for j in range(len(rewards)-3, len(rewards)):
+            batch_probs.append(log_prob)
+
+            if len(rewards) >= window_size:
+                for j in range(len(rewards)-window_size, len(rewards)):
                     rewards[j] += (decay ** (len(rewards)-j)) * reward
             rewards.append(reward)
+            batch_rewards.append(reward)
 
             if done:
                 break
 
         episode_reward += int(sum(rewards))/episode_per_batch
-        batch_rewards = batch_rewards + rewards
-        batch_probs = batch_probs + log_probs
 
-    batch_bar.set_description(f"Total: {int(episode_reward): 4.1f}")
+    batch_bar.set_description(f"Total: {int(episode_reward): 4.2f}")
+    batch_rewards = np.array(batch_rewards)
     agent.learn(torch.stack(batch_probs), torch.from_numpy(batch_rewards))

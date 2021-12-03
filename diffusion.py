@@ -46,7 +46,7 @@ class ICModel:
             temp_state = prob2state(prob) | temp_state
 
         temp_state = temp_state & (~blocker)
-        self.active = temp_state & (~self.state) == 1
+        self.active = temp_state & (~self.state)
         self.state = temp_state | self.state
 
         return self.state, self.active

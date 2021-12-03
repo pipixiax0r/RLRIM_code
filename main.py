@@ -59,8 +59,8 @@ for batch in batch_bar:
             if done:
                 break
 
-        episode_reward += int(sum(rewards))/episode_per_batch
+        episode_reward += sum(rewards)/episode_per_batch
 
-    batch_bar.set_description(f"Total: {int(episode_reward): 4.2f}")
+    batch_bar.set_description(f"Total: {episode_reward: 4.2f}")
     batch_rewards = np.array(batch_rewards)
     agent.learn(torch.stack(batch_probs), torch.from_numpy(batch_rewards))

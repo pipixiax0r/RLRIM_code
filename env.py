@@ -13,14 +13,13 @@ class Env:
     def __init__(self, graph: Union[nx.Graph, nx.DiGraph], num_seeds: int, seed_min_deg: int, blocker_min_deg: int):
         """
         谣言传播的强化学习环境
-
         """
         self.graph = graph
         self.num_seeds = num_seeds
         self.model = ICModel(self.graph)
         self.seeds = []
         self.blocker_seq = []
-        self.possible_blocker = set()
+        self.valid_blocker = None
 
         if isinstance(graph, nx.Graph):
             self.seed_candidate = list(filter(lambda x: deg(x, graph) >= seed_min_deg, self.graph.nodes()))
@@ -40,11 +39,16 @@ class Env:
             return 0
         return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-3:]))
 
-    def _block_invalid_loss(self):
+    def _block_invalid_loss(self, blocker_one_hot):
         """
         预测节点无效时的损失
         """
-        pass
+        try:
+            valid_blocker = reduce(lambda x, y: x | y, self.model.prob_matrix[self.model.active].astype(np.bool_))
+        except TypeError:
+            raise DiffusionEnd()
+        valid_blocker = valid_blocker & (~self.model.state)
+        return sum(blocker_one_hot & (~valid_blocker)) * 2
 
     def reset(self, seeds: np.ndarray = None) -> np.array:
         self.model = ICModel(self.graph)
@@ -64,10 +68,10 @@ class Env:
     def step(self, blocker: Union[int, List] = None) -> Tuple[np.array, float, int]:
         if blocker is None:
             blocker = np.zeros(self.num_seeds).astype(np.bool_)
-        elif isinstance(blocker, list):
-            blocker = np.array(blocker)
-        elif isinstance(blocker, int):
-            blocker = np.array([blocker])
+        elif isinstance(blocker, (list, int)):
+            blocker = self.blocker_candidate[blocker]
+            if isinstance(blocker, int):
+                blocker = [blocker]
         else:
             raise TypeError(f'not supported for the input types: {type(blocker)}')
 
@@ -75,11 +79,13 @@ class Env:
             blocker_one_hot = np.zeros(self.model.num_nodes).astype(np.bool_)
             blocker_one_hot[blocker] = 1
             self.blocker_seq.append(blocker)
+            block_invalid_loss = self._block_invalid_loss(blocker_one_hot)  # 必须在演化之前执行
             state, active = self.model.diffusion(blocker_one_hot)
-            reward = float(-sum(active) - self._block_time_loss())
+            reward = - sum(active) - self._block_time_loss() - block_invalid_loss
             done = 0
         except DiffusionEnd:
             state = self.model.state
             reward = 0
             done = 1
+
         return state, reward, done

@@ -11,11 +11,11 @@ class PolicyGradientNetwork(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
         self.fcn = nn.Sequential(
-            nn.Dropout(0.2),
+            nn.Dropout(0.1),
             nn.Linear(input_size, hidden_size),
             nn.LeakyReLU(),
 
-            nn.Dropout(0.2),
+            nn.Dropout(0.1),
             nn.Linear(hidden_size, output_size)
         )
 
@@ -26,7 +26,7 @@ class PolicyGradientNetwork(nn.Module):
 class PolicyGradientAgent:
     def __init__(self, network):
         self.network = network
-        self.optimizer = optim.Adam(self.network.parameters(), lr=1e-3)
+        self.optimizer = optim.Adam(self.network.parameters(), lr=5e-3)
 
     def forward(self, state):
         return self.network(state)

@@ -20,9 +20,9 @@ num_nodes = len(graph.nodes)
 num_seeds = 1
 num_blocker = 1
 seeds_deg = 8
-blocker_deg = 4
-num_batch = 1000
-episode_per_batch = 10
+blocker_deg = 5
+num_batch = 2000
+episode_per_batch = 35
 num_diffusion = 5
 window_size = 3
 decay = 0.5
@@ -32,7 +32,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = PolicyGradientNetwork(num_nodes, 25, len(env.blocker_candidate))
+network = PolicyGradientNetwork(num_nodes, 20, len(env.blocker_candidate))
 agent = PolicyGradientAgent(network)
 agent.network.train()
 
@@ -43,6 +43,9 @@ for batch in batch_bar:
     avg_reward = 0
     avg_infected = 0
     batch_rewards, batch_probs = [], []
+
+    if batch == 500:
+        print('500')
 
     for episode in range(episode_per_batch):
         rewards, log_probs = [], []
@@ -71,4 +74,4 @@ for batch in batch_bar:
     agent.learn(torch.stack(batch_probs), torch.from_numpy(batch_rewards))
 
 df = pd.DataFrame({'rewards': rewards_plot, 'infected': infected_plot})
-df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}.csv', index=False)
+df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}_blocker_deg{blocker_deg}.csv', index=False)

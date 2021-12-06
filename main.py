@@ -21,8 +21,8 @@ num_seeds = 1
 num_blocker = 1
 seeds_deg = 8
 blocker_deg = 5
-num_batch = 2000
-episode_per_batch = 35
+num_batch = 1000
+episode_per_batch = 40
 num_diffusion = 5
 window_size = 3
 decay = 0.5
@@ -39,39 +39,38 @@ agent.network.train()
 rewards_plot = []
 infected_plot = []
 batch_bar = tqdm(range(num_batch))
+
 for batch in batch_bar:
-    avg_reward = 0
-    avg_infected = 0
     batch_rewards, batch_probs = [], []
-
-    if batch == 500:
-        print('500')
-
+    avg_reward, avg_infected = 0, 0
     for episode in range(episode_per_batch):
-        rewards, log_probs = [], []
         state = env.reset()
+        episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
             action, log_prob = agent.sample(state)
             state, reward, done = env.step(action)
-            log_probs.append(log_prob)
-            batch_probs.append(log_prob)
-            if len(rewards) >= window_size:
-                for j in range(len(rewards)-window_size, len(rewards)):
-                    rewards[j] += (decay ** (len(rewards)-j)) * reward
-            rewards.append(reward)
-            batch_rewards.append(reward)
+            episode_rewards.append(reward)
+            episode_probs.append(log_prob)
             if done:
                 break
 
-        avg_reward += sum(rewards) / episode_per_batch
+        n = len(episode_rewards)
+        decay_rewards = [0 for i in range(n)]
+        for i in range(n):
+            for j in range(i, n):
+                decay_rewards[i] += decay**(j-i)*episode_rewards[j]
+
+        batch_rewards = batch_rewards + decay_rewards
+        batch_probs = batch_probs + episode_probs
+        avg_reward += sum(episode_rewards) / episode_per_batch
         avg_infected += sum(env.model.state) / episode_per_batch
 
     rewards_plot.append(avg_reward)
     infected_plot.append(avg_infected)
-    batch_bar.set_description(f"Total: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
+    batch_bar.set_description(f"avg_reward: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
     batch_rewards = np.array(batch_rewards)
     agent.learn(torch.stack(batch_probs), torch.from_numpy(batch_rewards))
 
 df = pd.DataFrame({'rewards': rewards_plot, 'infected': infected_plot})
-df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}_blocker_deg{blocker_deg}.csv', index=False)
+df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}_deg{blocker_deg}.csv', index=False)

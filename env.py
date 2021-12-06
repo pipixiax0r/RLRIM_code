@@ -19,7 +19,6 @@ class Env:
         self.model = ICModel(self.graph)
         self.seeds = []
         self.blocker_seq = []
-        self.valid_blocker = None
 
         if isinstance(graph, nx.Graph):
             self.seed_candidate = list(filter(lambda x: deg(x, graph) >= seed_min_deg, self.graph.nodes()))
@@ -43,12 +42,15 @@ class Env:
         """
         预测节点无效时的损失
         """
+        valid_blocker = self.valid_blocker()
+        return sum(blocker_one_hot & (~valid_blocker)) - sum(blocker_one_hot & valid_blocker)
+
+    def valid_blocker(self):
         try:
-            valid_blocker = reduce(lambda x, y: x | y, self.model.prob_matrix[self.model.active].astype(np.bool_))
+            valid_blocker = reduce(lambda x, y: x | y, self.model.prob_matrix[self.model.active].astype(np.bool_)) & (~self.model.state)
         except TypeError:
             raise DiffusionEnd()
-        valid_blocker = valid_blocker & (~self.model.state)
-        return sum(blocker_one_hot & (~valid_blocker)) * 2
+        return valid_blocker
 
     def reset(self, seeds: np.ndarray = None) -> np.array:
         self.model = ICModel(self.graph)

@@ -24,8 +24,9 @@ class PolicyGradientNetwork(nn.Module):
 
 
 class PolicyGradientAgent:
-    def __init__(self, network):
+    def __init__(self, network, num_actions):
         self.network = network
+        self.num_actions = num_actions
         self.optimizer = optim.Adam(self.network.parameters(), lr=5e-3)
 
     def forward(self, state):
@@ -39,11 +40,14 @@ class PolicyGradientAgent:
         self.optimizer.step()
 
     def sample(self, state):
-        action_prob = self.network(torch.FloatTensor(state))
+        action_prob = self.network(torch.FloatTensor(state, device=torch.device('cuda')))
         distribution = Categorical(action_prob)
-        action = distribution.sample()
-        log_prob = distribution.log_prob(action)
-        return action.item(), log_prob
+        actions = set()
+        while len(actions) < self.num_actions:
+            actions.add(distribution.sample())
+        log_probs = [distribution.log_prob(action) for action in actions]
+        actions = [action.item() for action in actions]
+        return actions, log_probs
 
     def save(self, path):
         agent_dict = {

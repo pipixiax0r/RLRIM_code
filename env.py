@@ -22,10 +22,10 @@ class Env:
 
         if isinstance(graph, nx.Graph):
             self.seed_candidate = list(filter(lambda x: deg(x, graph) >= seed_min_deg, self.graph.nodes()))
-            self.blocker_candidate = list(filter(lambda x: deg(x, graph) >= blocker_min_deg, self.graph.nodes()))
+            self.blocker_candidate = np.array(list(filter(lambda x: deg(x, graph) >= blocker_min_deg, self.graph.nodes())))
         elif isinstance(graph, nx.DiGraph):
             self.seed_candidate = list(filter(lambda x: deg(x, graph)[1] >= seed_min_deg, self.graph.nodes()))
-            self.blocker_candidate = list(filter(lambda x: deg(x, graph)[1] >= blocker_min_deg, self.graph.nodes()))
+            self.blocker_candidate = np.array(list(filter(lambda x: deg(x, graph)[1] >= blocker_min_deg, self.graph.nodes())))
         else:
             raise TypeError(f'not supported for the input types: {type(graph)}')
 
@@ -72,8 +72,6 @@ class Env:
             blocker = np.zeros(self.num_seeds).astype(np.bool_)
         elif isinstance(blocker, (list, int)):
             blocker = self.blocker_candidate[blocker]
-            if isinstance(blocker, int):
-                blocker = [blocker]
         else:
             raise TypeError(f'not supported for the input types: {type(blocker)}')
 

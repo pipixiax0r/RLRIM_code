@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 
 def deg(node: int, graph: Union[nx.Graph, nx.DiGraph]) -> Union[int, Tuple[int, int]]:
@@ -33,6 +33,10 @@ def graph2adj_matrix(graph: Union[nx.Graph, nx.DiGraph]) -> np.array:
         raise TypeError(f'not supported for the input types: {type(graph)}')
 
     return adj_matrix
+
+
+def one_hot2idx(array: np.ndarray) -> List:
+    return list(np.arange(len(array))[array])
 
 
 def n_depth_neighbors(graph, source, depth=1):

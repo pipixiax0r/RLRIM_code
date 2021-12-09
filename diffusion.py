@@ -27,6 +27,10 @@ class ICModel:
         self.state = np.zeros(self.num_nodes).astype(np.bool_)
         self.active = np.zeros(self.num_nodes).astype(np.bool_)
 
+    def reset(self):
+        self.state = np.zeros(self.num_nodes).astype(np.bool_)
+        self.active = np.zeros(self.num_nodes).astype(np.bool_)
+
     def diffusion(self, blocker: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         independent cascade process

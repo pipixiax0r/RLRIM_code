@@ -14,7 +14,7 @@ def deg(node: int, graph: Union[nx.Graph, nx.DiGraph]) -> Union[int, Tuple[int, 
         raise TypeError(f'not supported for the input types: {type(graph)}')
 
 
-def graph2adj_matrix(graph: Union[nx.Graph, nx.DiGraph]) -> np.array:
+def graph2adj_matrix(graph: Union[nx.Graph, nx.DiGraph], alpha: float = 0.6) -> np.array:
     num_nodes = len(graph.nodes())
     adj_matrix = np.zeros((num_nodes, num_nodes)).astype(np.float)
 
@@ -22,13 +22,13 @@ def graph2adj_matrix(graph: Union[nx.Graph, nx.DiGraph]) -> np.array:
         for a, b in graph.edges():
             deg_a = deg(a, graph)
             deg_b = deg(b, graph)
-            adj_matrix[a][b] = np.log(deg_a) / (np.log(deg_a * deg_b) + 1)
-            adj_matrix[b][a] = np.log(deg_b) / (np.log(deg_a * deg_b) + 1)
+            adj_matrix[a][b] = alpha * np.log2(deg_a+1) / (np.log2(deg_a+1) + np.log2(deg_b+1))
+            adj_matrix[b][a] = alpha * np.log2(deg_b+1) / (np.log2(deg_a+1) + np.log2(deg_b+1))
     elif isinstance(graph, nx.DiGraph):
         for a, b in graph.edges():
             deg_a = deg(a, graph)
             deg_b = deg(b, graph)
-            adj_matrix[a][b] = np.log(deg_a) / (np.log(deg_a * deg_b) + 1)
+            adj_matrix[a][b] = alpha * np.log(deg_a+1) / (np.log(deg_a+1) + np.log(deg_b+1))
     else:
         raise TypeError(f'not supported for the input types: {type(graph)}')
 

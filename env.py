@@ -53,7 +53,7 @@ class Env:
         return valid_blocker
 
     def reset(self, seeds: np.ndarray = None) -> np.array:
-        self.model = ICModel(self.graph)
+        self.model.reset()
 
         if not isinstance(seeds, np.ndarray):
             seeds = sample(self.seed_candidate, self.num_seeds)

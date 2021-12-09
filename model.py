@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 
 
-class PolicyGradientNetwork(nn.Module):
+class OneHiddenNetwork(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
         self.fcn = nn.Sequential(
@@ -23,11 +23,30 @@ class PolicyGradientNetwork(nn.Module):
         return func.softmax(self.fcn(state), dim=0)
 
 
+class TwoHiddenNetwork(nn.Module):
+    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+        super().__init__()
+        self.fcn = nn.Sequential(
+            nn.Dropout(0.1),
+            nn.Linear(input_size, hidden_size1),
+            nn.LeakyReLU(),
+
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size1, hidden_size2),
+
+            nn.Dropout(0.1),
+            nn.Linear(hidden_size2, output_size)
+        )
+
+    def forward(self, state):
+        return func.softmax(self.fcn(state), dim=0)
+
+
 class PolicyGradientAgent:
     def __init__(self, network, num_actions):
         self.network = network
         self.num_actions = num_actions
-        self.optimizer = optim.AdamW(self.network.parameters(), lr=5e-3)
+        self.optimizer = optim.AdamW(self.network.parameters(), lr=4e-3)
 
     def forward(self, state):
         return self.network(state)

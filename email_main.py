@@ -1,12 +1,11 @@
 import torch
 import numpy as np
 import pandas as pd
-import networkx as nx
 import pickle
 from tqdm import tqdm
 from functools import reduce
 from env import Env
-from model import PolicyGradientAgent, PolicyGradientNetwork
+from model import PolicyGradientAgent, OneHiddenNetwork
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -20,22 +19,22 @@ with open('nxGraph/graph_email', 'rb') as f:
     num_nodes = len(graph.nodes)
 
 num_seeds = 1
-num_blocker = 1
+num_blocker = 50
 seeds_deg = 150
-blocker_deg = 100
-num_batch = 500
-episode_per_batch = 100
+blocker_deg = 50
+num_batch = 1000
+episode_per_batch = 50
 num_diffusion = 5
 window_size = 3
 decay = 0.5
-device = torch.device('cuda')
+device = torch.device('cpu')
 
 env = Env(graph, num_seeds, seeds_deg, blocker_deg)
 print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = PolicyGradientNetwork(num_nodes, 20, len(env.blocker_candidate))
+network = OneHiddenNetwork(num_nodes, num_nodes//3, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)
@@ -76,6 +75,8 @@ for batch in batch_bar:
     rewards_plot.append(avg_reward)
     infected_plot.append(avg_infected)
     batch_bar.set_description(f"avg_reward: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
+    if batch % 50 == 0:
+        print(f"avg_reward: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
     batch_probs = torch.stack(batch_probs)
     batch_rewards = torch.tensor(batch_rewards)
     agent.learn(batch_probs.to(device), batch_rewards.to(device))

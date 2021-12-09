@@ -43,7 +43,7 @@ class Env:
         预测节点无效时的损失
         """
         valid_blocker = self.valid_blocker()
-        return sum(blocker_one_hot & (~valid_blocker)) - sum(blocker_one_hot & valid_blocker)
+        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker)
 
     def valid_blocker(self):
         try:
@@ -81,7 +81,7 @@ class Env:
             self.blocker_seq.append(blocker)
             block_invalid_loss = self._block_invalid_loss(blocker_one_hot)  # 必须在演化之前执行
             state, active = self.model.diffusion(blocker_one_hot)
-            reward = - sum(active) - self._block_time_loss() - block_invalid_loss
+            reward = - np.sum(active) - self._block_time_loss() - block_invalid_loss
             done = 0
         except DiffusionEnd:
             state = self.model.state

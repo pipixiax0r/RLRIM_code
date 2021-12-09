@@ -5,7 +5,7 @@ import networkx as nx
 from tqdm import tqdm
 from functools import reduce
 from env import Env
-from model import PolicyGradientAgent, PolicyGradientNetwork
+from model import PolicyGradientAgent, OneHiddenNetwork
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -18,7 +18,7 @@ graph = nx.karate_club_graph()
 num_nodes = len(graph.nodes)
 
 num_seeds = 1
-num_blocker = 2
+num_blocker = 1
 seeds_deg = 8
 blocker_deg = 5
 num_batch = 2000
@@ -33,7 +33,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = PolicyGradientNetwork(num_nodes, 20, len(env.blocker_candidate))
+network = OneHiddenNetwork(num_nodes, 20, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)

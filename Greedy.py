@@ -1,12 +1,17 @@
 import numpy as np
+import pickle
 
 from env import Env, DiffusionEnd
 import networkx as nx
 from utils import one_hot2idx, deg
 
-graph = nx.karate_club_graph()
+with open('nxGraph/graph_email', 'rb') as f:
+    graph = pickle.load(f)
+    num_nodes = len(graph.nodes)
+# graph = nx.karate_club_graph()
+
 num_seeds = 1
-num_blocker = 2
+num_blocker = 50
 seeds_deg = 8
 blocker_deg = 0
 num_episode = 1000

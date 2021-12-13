@@ -5,7 +5,7 @@ import pickle
 from tqdm import tqdm
 from functools import reduce
 from env import Env
-from model import PolicyGradientAgent, OneHiddenNetwork
+from model import PolicyGradientAgent, GATNetwork
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -34,7 +34,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = OneHiddenNetwork(num_nodes, num_nodes//3, len(env.blocker_candidate))
+network = GATNetwork(num_nodes, num_nodes // 3, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)

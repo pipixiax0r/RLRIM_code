@@ -1,45 +1,24 @@
 import torch
-
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
-
+from torch_geometric.nn import GATConv
 from torch.distributions import Categorical
 
 
-class OneHiddenNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
-        self.fcn = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(input_size, hidden_size),
-            nn.LeakyReLU(),
-
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size, output_size)
-        )
-
-    def forward(self, state):
-        return func.softmax(self.fcn(state), dim=0)
-
-
-class TwoHiddenNetwork(nn.Module):
+class GATNetwork(nn.Module):
     def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
         super().__init__()
-        self.fcn = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(input_size, hidden_size1),
-            nn.LeakyReLU(),
+        self.conv1 = GATConv(input_size, hidden_size1)
+        self.conv2 = GATConv(hidden_size1, hidden_size2)
 
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size1, hidden_size2),
-
-            nn.Dropout(0.1),
-            nn.Linear(hidden_size2, output_size)
-        )
-
-    def forward(self, state):
-        return func.softmax(self.fcn(state), dim=0)
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        x = self.conv1(x, edge_index)
+        x = func.leaky_relu(x)
+        x = func.dropout(x)
+        x = self.conv2(x, edge_index)
+        return func.softmax(x, dim=0)
 
 
 class PolicyGradientAgent:
@@ -48,8 +27,8 @@ class PolicyGradientAgent:
         self.num_actions = num_actions
         self.optimizer = optim.AdamW(self.network.parameters(), lr=4e-3)
 
-    def forward(self, state):
-        return self.network(state)
+    def forward(self, data):
+        return self.network(data)
 
     def learn(self, log_probs, rewards):
         loss = (-log_probs * rewards).sum()

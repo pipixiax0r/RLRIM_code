@@ -16,6 +16,13 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="yons@192.168.135.253:22 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/yons/pipixiax0r/RLRIM" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
     </serverData>
     <option name="myAutoUpload" value="ALWAYS" />
   </component>

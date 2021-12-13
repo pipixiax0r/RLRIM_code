@@ -5,7 +5,8 @@ import networkx as nx
 from tqdm import tqdm
 from functools import reduce
 from env import Env
-from model import PolicyGradientAgent, OneHiddenNetwork
+from model import PolicyGradientAgent, GATNetwork
+from torch_geometric.data import Data
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -15,6 +16,7 @@ def idx2array(idx: int, length: int) -> np.ndarray:
 
 
 graph = nx.karate_club_graph()
+edge_index = torch.tensor([[x[0] for x in graph.edges], [x[1] for x in graph.edges]], dtype=torch.long)
 num_nodes = len(graph.nodes)
 
 num_seeds = 1
@@ -33,7 +35,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = OneHiddenNetwork(num_nodes, 20, len(env.blocker_candidate))
+network = GATNetwork(num_nodes, 30, 20, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)
@@ -51,7 +53,9 @@ for batch in batch_bar:
         episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
-            actions, log_probs = agent.sample(torch.tensor(state, device=device, dtype=torch.float))
+            state.a
+            x = torch.tensor(, dtype=torch.float, device=device)
+            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.t()))
             state, reward, done = env.step(actions)
             episode_probs += log_probs
             episode_rewards.append(reward)
@@ -92,7 +96,8 @@ with torch.no_grad():
         episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
-            actions, log_probs = agent.sample(torch.tensor(state, device=device, dtype=torch.float))
+            x = torch.tensor(state, device=device, dtype=torch.float)
+            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.t().contiguous()))
             state, reward, done = env.step(actions)
             episode_probs += log_probs
             episode_rewards.append(reward)

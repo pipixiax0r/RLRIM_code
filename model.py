@@ -7,17 +7,25 @@ from torch.distributions import Categorical
 
 
 class GATNetwork(nn.Module):
-    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+    def __init__(self, conv_size, input_size, hidden_size, output_size):
         super().__init__()
-        self.conv1 = GATConv(input_size, hidden_size1)
-        self.conv2 = GATConv(hidden_size1, hidden_size2)
+        self.conv1 = GATConv(1, conv_size)
+        self.conv2 = GATConv(conv_size, 1)
+        self.fcn = nn.Sequential(
+            nn.Dropout(0.15),
+            nn.Linear(input_size, hidden_size),
+            nn.LeakyReLU(),
+
+            nn.Linear(hidden_size, output_size)
+        )
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
+
         x = self.conv1(x, edge_index)
         x = func.leaky_relu(x)
-        x = func.dropout(x)
         x = self.conv2(x, edge_index)
+        x = self.fcn(x.T.squeeze())
         return func.softmax(x, dim=0)
 
 
@@ -25,10 +33,7 @@ class PolicyGradientAgent:
     def __init__(self, network, num_actions):
         self.network = network
         self.num_actions = num_actions
-        self.optimizer = optim.AdamW(self.network.parameters(), lr=4e-3)
-
-    def forward(self, data):
-        return self.network(data)
+        self.optimizer = optim.AdamW(self.network.parameters(), lr=5e-3)
 
     def learn(self, log_probs, rewards):
         loss = (-log_probs * rewards).sum()
@@ -37,8 +42,8 @@ class PolicyGradientAgent:
         loss.backward()
         self.optimizer.step()
 
-    def sample(self, state):
-        action_prob = self.network(state)
+    def sample(self, data):
+        action_prob = self.network(data)
         distribution = Categorical(action_prob)
         actions = set()
         while len(actions) < self.num_actions:

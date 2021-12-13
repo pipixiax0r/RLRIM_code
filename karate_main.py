@@ -16,15 +16,14 @@ def idx2array(idx: int, length: int) -> np.ndarray:
 
 
 graph = nx.karate_club_graph()
-edge_index = torch.tensor([[x[0] for x in graph.edges], [x[1] for x in graph.edges]], dtype=torch.long)
 num_nodes = len(graph.nodes)
 
 num_seeds = 1
-num_blocker = 1
+num_blocker = 2
 seeds_deg = 8
-blocker_deg = 5
-num_batch = 2000
-episode_per_batch = 35
+blocker_deg = 2
+num_batch = 600
+episode_per_batch = 150
 num_diffusion = 5
 window_size = 3
 decay = 0.5
@@ -35,7 +34,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = GATNetwork(num_nodes, 30, 20, len(env.blocker_candidate))
+network = GATNetwork(2, num_nodes, num_nodes//2, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)
@@ -44,8 +43,11 @@ agent.network.train()
 rewards_plot = []
 infected_plot = []
 batch_bar = tqdm(range(num_batch))
+edge_index = torch.tensor([[x[0] for x in graph.edges], [x[1] for x in graph.edges]], dtype=torch.long, device=device)
 
 for batch in batch_bar:
+    if batch == 100:
+        print(batch)
     batch_rewards, batch_probs = [], []
     avg_reward, avg_infected = 0, 0
     for episode in range(episode_per_batch):
@@ -53,9 +55,10 @@ for batch in batch_bar:
         episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
-            state.a
-            x = torch.tensor(, dtype=torch.float, device=device)
-            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.t()))
+            x = torch.tensor([[i] for i in state], dtype=torch.float, device=device)
+            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.contiguous()))
+            if batch % 100 == 0 and episode == 0:
+                print(actions)
             state, reward, done = env.step(actions)
             episode_probs += log_probs
             episode_rewards.append(reward)
@@ -96,8 +99,8 @@ with torch.no_grad():
         episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
-            x = torch.tensor(state, device=device, dtype=torch.float)
-            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.t().contiguous()))
+            x = torch.tensor([[i] for i in state], dtype=torch.float, device=device)
+            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.contiguous()))
             state, reward, done = env.step(actions)
             episode_probs += log_probs
             episode_rewards.append(reward)

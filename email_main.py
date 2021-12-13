@@ -34,7 +34,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = GATNetwork(num_nodes, num_nodes // 3, len(env.blocker_candidate))
+network = GATNetwork(num_nodes, num_nodes // 3, )
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)

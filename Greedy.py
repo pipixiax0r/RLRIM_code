@@ -11,7 +11,7 @@ from utils import one_hot2idx, deg
 graph = nx.karate_club_graph()
 
 num_seeds = 1
-num_blocker = 2
+num_blocker = 1
 seeds_deg = 8
 blocker_deg = 0
 num_episode = 1000

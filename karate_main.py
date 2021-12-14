@@ -19,10 +19,10 @@ graph = nx.karate_club_graph()
 num_nodes = len(graph.nodes)
 
 num_seeds = 1
-num_blocker = 2
+num_blocker = 1
 seeds_deg = 8
 blocker_deg = 3
-num_batch = 800
+num_batch = 600
 episode_per_batch = 150
 num_diffusion = 5
 window_size = 3
@@ -34,7 +34,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = GATNetwork(2, num_nodes, num_nodes//2, len(env.blocker_candidate))
+network = GATNetwork(2, num_nodes, 30, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)

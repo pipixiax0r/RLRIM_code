@@ -43,7 +43,7 @@ class Env:
         预测节点无效时的损失
         """
         valid_blocker = self.valid_blocker()
-        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker)
+        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker) * 0.5
 
     def valid_blocker(self):
         try:

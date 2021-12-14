@@ -1,10 +1,8 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
 from torch_geometric.nn import GATConv
-from torch.distributions import Categorical
 
 
 class GATNetwork(nn.Module):
@@ -27,14 +25,14 @@ class GATNetwork(nn.Module):
         x = func.leaky_relu(x)
         x = self.conv2(x, edge_index)
         x = self.fcn(x.T.squeeze())
-        return func.log_softmax(x, dim=0)
+        return func.softmax(x, dim=0)
 
 
 class PolicyGradientAgent:
     def __init__(self, network, num_actions):
         self.network = network
         self.num_actions = num_actions
-        self.optimizer = optim.AdamW(self.network.parameters(), lr=5e-3)
+        self.optimizer = optim.AdamW(self.network.parameters(), lr=1e-2)
 
     def learn(self, log_probs, rewards):
         loss = (-log_probs * rewards).sum()
@@ -44,24 +42,11 @@ class PolicyGradientAgent:
         self.optimizer.step()
 
     def sample(self, data):
-        action_prob = torch.exp(self.network(data))
-        actions = []
-        sample_prob = torch.exp(self.network(data)).detach().numpy()
-        log_probs = []
-        for _ in range(self.num_actions):
-            sample_prob = sample_prob/np.sum(sample_prob)
-            action = np.random.choice(np.arange(len(action_prob)), p=sample_prob)
-            actions.append(action)
-            log_probs.append(action_prob[action])
-            sample_prob[action] = 0
-
-        # distribution = Categorical(action_prob)
-        # actions = set()
-        # while len(actions) < self.num_actions:
-        #     actions.add(distribution.sample())
-        # log_probs = [distribution.log_prob(action) for action in actions]
-        # actions = [action.item() for action in actions]
-        return actions, log_probs
+        action_probs = torch.exp(self.network(data))
+        idx = action_probs.multinomial(num_samples=self.num_actions)
+        actions = torch.arange(len(action_probs))[idx]
+        log_probs = torch.log(action_probs[idx])
+        return actions.detach().cpu().numpy().tolist(), log_probs
 
     def save(self, path):
         agent_dict = {

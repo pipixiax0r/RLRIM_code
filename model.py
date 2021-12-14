@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as func
@@ -26,7 +27,7 @@ class GATNetwork(nn.Module):
         x = func.leaky_relu(x)
         x = self.conv2(x, edge_index)
         x = self.fcn(x.T.squeeze())
-        return func.softmax(x, dim=0)
+        return func.log_softmax(x, dim=0)
 
 
 class PolicyGradientAgent:
@@ -43,13 +44,23 @@ class PolicyGradientAgent:
         self.optimizer.step()
 
     def sample(self, data):
-        action_prob = self.network(data)
-        distribution = Categorical(action_prob)
-        actions = set()
-        while len(actions) < self.num_actions:
-            actions.add(distribution.sample())
-        log_probs = [distribution.log_prob(action) for action in actions]
-        actions = [action.item() for action in actions]
+        action_prob = torch.exp(self.network(data))
+        actions = []
+        sample_prob = torch.exp(self.network(data)).detach().numpy()
+        log_probs = []
+        for _ in range(self.num_actions):
+            sample_prob = sample_prob/np.sum(sample_prob)
+            action = np.random.choice(np.arange(len(action_prob)), p=sample_prob)
+            actions.append(action)
+            log_probs.append(action_prob[action])
+            sample_prob[action] = 0
+
+        # distribution = Categorical(action_prob)
+        # actions = set()
+        # while len(actions) < self.num_actions:
+        #     actions.add(distribution.sample())
+        # log_probs = [distribution.log_prob(action) for action in actions]
+        # actions = [action.item() for action in actions]
         return actions, log_probs
 
     def save(self, path):

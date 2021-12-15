@@ -34,16 +34,16 @@ class Env:
         预测节点连续封禁的损失
         :return:
         """
-        if len(self.blocker_seq) < 3:
+        if len(self.blocker_seq) < 2:
             return 0
-        return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-3:]))
+        return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-2:]))*2
 
     def _block_invalid_loss(self, blocker_one_hot):
         """
         预测节点无效时的损失
         """
         valid_blocker = self.valid_blocker()
-        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker) * 0.5
+        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker)*0.5
 
     def valid_blocker(self):
         try:
@@ -52,13 +52,14 @@ class Env:
             raise DiffusionEnd()
         return valid_blocker
 
-    def reset(self, seeds: np.ndarray = None) -> np.array:
+    def reset(self, seeds: np.ndarray = None, random_seed: int = None) -> np.array:
         self.model.reset()
-
         if not isinstance(seeds, np.ndarray):
+            np.random.seed(random_seed)
             seeds = sample(self.seed_candidate, self.num_seeds)
         else:
             if not seeds.any():
+                np.random.seed(random_seed)
                 seeds = sample(self.seed_candidate, self.num_seeds)
 
         self.seeds = seeds

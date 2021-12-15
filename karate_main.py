@@ -7,12 +7,18 @@ from functools import reduce
 from env import Env
 from model import PolicyGradientAgent, GATNetwork
 from torch_geometric.data import Data
+from torch_geometric.datasets import KarateClub
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
     array = np.zeros(length).astype(np.bool_)
     array[idx] = 1
     return array
+
+
+data = KarateClub()[0]
+graph = nx.DiGraph()
+graph.add_edges_from([(a, b) for a, b in zip(*data.edge_index.detach().cpu().numpy().tolist())])
 
 
 graph = nx.karate_club_graph()
@@ -22,7 +28,7 @@ num_seeds = 1
 num_blocker = 1
 seeds_deg = 8
 blocker_deg = 5
-num_batch = 1000
+num_batch = 1500
 episode_per_batch = 60
 num_diffusion = 10
 window_size = 3
@@ -34,7 +40,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = GATNetwork(1, num_nodes, 25, len(env.blocker_candidate))
+network = GATNetwork(4, num_nodes, 25, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)

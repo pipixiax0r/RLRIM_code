@@ -8,8 +8,8 @@ from torch_geometric.nn import GCNConv, GATv2Conv
 class GATNetwork(nn.Module):
     def __init__(self, conv_size, input_size, hidden_size, output_size):
         super().__init__()
-        self.conv1 = GCNConv(1, conv_size, improved=True)
-        self.conv2 = GCNConv(conv_size, 1, improved=True)
+        self.conv1 = GCNConv(1, conv_size)
+        self.conv2 = GCNConv(conv_size, 1)
         self.fc = nn.Linear(input_size, output_size)
         self.fcn = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -30,7 +30,7 @@ class GATNetwork(nn.Module):
         x = self.conv2(x, edge_index)
         x = func.leaky_relu(x)
 
-        x = self.fc(x.T.squeeze())
+        x = self.fcn(x.T.squeeze())
         return func.log_softmax(x, dim=0)
 
 
@@ -38,7 +38,7 @@ class PolicyGradientAgent:
     def __init__(self, network, num_actions):
         self.network = network
         self.num_actions = num_actions
-        self.optimizer = optim.AdamW(self.network.parameters(), lr=2e-3)
+        self.optimizer = optim.AdamW(self.network.parameters(), lr=1e-3)
 
     def learn(self, log_probs, rewards):
         loss = (-log_probs * rewards).sum()

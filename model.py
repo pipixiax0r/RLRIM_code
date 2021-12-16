@@ -2,14 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 import torch.optim as optim
-from torch_geometric.nn import GCNConv, GATv2Conv
+from torch_geometric.nn import GCNConv, GATConv
 
 
-class GATNetwork(nn.Module):
+class EmailNetwork(nn.Module):
     def __init__(self, conv_size, input_size, hidden_size, output_size):
         super().__init__()
-        self.conv1 = GCNConv(1, conv_size)
-        self.conv2 = GCNConv(conv_size, 1)
+        self.conv1 = GATConv(1, 4)
+        self.conv2 = GATConv(4, 4)
+        self.conv3 = GATConv(4, 1)
         self.fc = nn.Linear(input_size, output_size)
         self.fcn = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -27,7 +28,10 @@ class GATNetwork(nn.Module):
         x = self.conv2(x, edge_index)
         x = func.leaky_relu(x)
 
-        x = self.fcn(x.T.squeeze())
+        x = self.conv3(x, edge_index)
+        x = func.leaky_relu(x)
+
+        x = self.fc(x.T.squeeze())
         return func.log_softmax(x, dim=0)
 
 

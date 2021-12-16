@@ -1,11 +1,15 @@
+import pickle
+
 import torch
 import numpy as np
 import pandas as pd
-import pickle
+import networkx as nx
 from tqdm import tqdm
 from functools import reduce
 from env import Env
-from model import PolicyGradientAgent, GATNetwork
+from model import PolicyGradientAgent, EmailNetwork
+from torch_geometric.data import Data
+from torch_geometric.datasets import KarateClub
 
 
 def idx2array(idx: int, length: int) -> np.ndarray:
@@ -14,17 +18,19 @@ def idx2array(idx: int, length: int) -> np.ndarray:
     return array
 
 
-with open('nxGraph/graph_email', 'rb') as f:
-    graph = pickle.load(f)
-    num_nodes = len(graph.nodes)
+graph = pickle.load('nxGraph/graph_email')
+
+
+graph = nx.karate_club_graph()
+num_nodes = len(graph.nodes)
 
 num_seeds = 1
-num_blocker = 50
-seeds_deg = 150
-blocker_deg = 50
-num_batch = 1000
-episode_per_batch = 50
-num_diffusion = 5
+num_blocker = 1
+seeds_deg = 8
+blocker_deg = 5
+num_batch = 1500
+episode_per_batch = 60
+num_diffusion = 10
 window_size = 3
 decay = 0.5
 device = torch.device('cpu')
@@ -34,7 +40,7 @@ print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
 
-network = GATNetwork(num_nodes, num_nodes // 3, )
+network = EmailNetwork(4, num_nodes, 25, len(env.blocker_candidate))
 network = network.to(device)
 network.device = device
 agent = PolicyGradientAgent(network, num_blocker)
@@ -43,16 +49,21 @@ agent.network.train()
 rewards_plot = []
 infected_plot = []
 batch_bar = tqdm(range(num_batch))
+edge_index = torch.tensor([[x[0] for x in graph.edges], [x[1] for x in graph.edges]], dtype=torch.long, device=device)
 
 for batch in batch_bar:
     batch_rewards, batch_probs = [], []
     avg_reward, avg_infected = 0, 0
+
     for episode in range(episode_per_batch):
         state = env.reset()
         episode_rewards, episode_probs = [], []
 
         for i in range(num_diffusion):
-            actions, log_probs = agent.sample(torch.tensor(state, device=device, dtype=torch.float))
+            x = torch.tensor([[i] for i in state], dtype=torch.float, device=device)
+            actions, log_probs = agent.sample(Data(x=x, edge_index=edge_index.contiguous()))
+            if batch % 100 == 0 and episode == 0:
+                print(actions)
             state, reward, done = env.step(actions)
             episode_probs += log_probs
             episode_rewards.append(reward)
@@ -75,44 +86,9 @@ for batch in batch_bar:
     rewards_plot.append(avg_reward)
     infected_plot.append(avg_infected)
     batch_bar.set_description(f"avg_reward: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
-    if batch % 50 == 0:
-        print(f"avg_reward: {avg_reward: 4.2f}, avg_infected: {avg_infected: 4.2f}")
     batch_probs = torch.stack(batch_probs)
     batch_rewards = torch.tensor(batch_rewards)
     agent.learn(batch_probs.to(device), batch_rewards.to(device))
 
 df = pd.DataFrame({'rewards': rewards_plot, 'infected': infected_plot})
-df.to_csv(f'email_seeds{num_seeds}_blockers{num_blocker}_deg{blocker_deg}.csv', index=False)
-
-
-agent.network.eval()
-batch_rewards, batch_probs = [], []
-avg_reward, avg_infected = 0, 0
-
-with torch.no_grad():
-    for episode in range(episode_per_batch*10):
-        state = env.reset()
-        episode_rewards, episode_probs = [], []
-
-        for i in range(num_diffusion):
-            actions, log_probs = agent.sample(state)
-            state, reward, done = env.step(actions)
-            episode_probs += log_probs
-            episode_rewards.append(reward)
-            if done:
-                break
-
-        n = len(episode_rewards)
-        decay_rewards = [0 for i in range(n)]
-        for i in range(n):
-            for j in range(i, n):
-                decay_rewards[i] += decay**(j-i)*episode_rewards[j]
-        # 收益和对应的action概率长度一致
-        decay_rewards = [[reward for _ in range(num_blocker)] for reward in decay_rewards]
-        decay_rewards = list(reduce(lambda x, y: x + y, decay_rewards))
-        batch_rewards = batch_rewards + decay_rewards
-        batch_probs = batch_probs + episode_probs
-        avg_reward += sum(episode_rewards) / (episode_per_batch*10)
-        avg_infected += sum(env.model.state) / (episode_per_batch*10)
-
-print(f'avg_reward:{avg_reward}\tavg_infected:{avg_infected}')
+df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}_deg{blocker_deg}.csv', index=False)

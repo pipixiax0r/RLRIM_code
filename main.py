@@ -18,24 +18,23 @@ def idx2array(idx: int, length: int) -> np.ndarray:
     return array
 
 
-graph = pickle.load('nxGraph/graph_email')
+with open('nxGraph/graph_email', 'rb') as f:
+    graph = pickle.load(f)
 
 
-graph = nx.karate_club_graph()
 num_nodes = len(graph.nodes)
 
-num_seeds = 1
-num_blocker = 1
-seeds_deg = 8
-blocker_deg = 5
-num_batch = 1500
-episode_per_batch = 60
+seed_candidate = []
+num_blocker = 5
+blocker_deg = 35
+num_batch = 600
+episode_per_batch = 20
 num_diffusion = 10
 window_size = 3
 decay = 0.5
 device = torch.device('cpu')
 
-env = Env(graph, num_seeds, seeds_deg, blocker_deg)
+env = Env(graph, seed_candidate, blocker_deg)
 print(env.model.prob_matrix)
 print(env.seed_candidate)
 print(f'num of blocker candidate : {len(env.blocker_candidate)}')
@@ -91,4 +90,4 @@ for batch in batch_bar:
     agent.learn(batch_probs.to(device), batch_rewards.to(device))
 
 df = pd.DataFrame({'rewards': rewards_plot, 'infected': infected_plot})
-df.to_csv(f'karate_seeds{num_seeds}_blockers{num_blocker}_deg{blocker_deg}.csv', index=False)
+df.to_csv(f'karate_seeds_blockers{num_blocker}.csv', index=False)

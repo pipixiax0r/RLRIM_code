@@ -24,12 +24,12 @@ with open('nxGraph/graph_email', 'rb') as f:
 
 num_nodes = len(graph.nodes)
 
-seed_candidate = []
+seed_candidate = [481, 171, 51, 182, 103]
 num_blocker = 5
 blocker_deg = 35
 num_batch = 600
-episode_per_batch = 20
-num_diffusion = 10
+episode_per_batch = 30
+num_diffusion = 5
 window_size = 3
 decay = 0.5
 device = torch.device('cpu')

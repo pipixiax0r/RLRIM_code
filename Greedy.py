@@ -17,7 +17,7 @@ blocker_deg = 0
 num_episode = 1000
 num_diffusion = 10
 
-env = Env(graph, num_seeds, seeds_deg, blocker_deg)
+env = Env(graph, num_seeds, [481, 171, 51, 182, 103])
 avg_reward = 0
 avg_infected = 0
 

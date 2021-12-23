@@ -10,23 +10,15 @@ from diffusion import DiffusionEnd
 
 
 class Env:
-    def __init__(self, graph: Union[nx.Graph, nx.DiGraph], seed_candidate: List, blocker_min_deg: int):
+    def __init__(self, graph: Union[nx.Graph, nx.DiGraph], seeds: List, num_blocker: int):
         """
         谣言传播的强化学习环境
         """
         self.graph = graph
         self.model = ICModel(self.graph)
-        self.seed = None
+        self.seeds = seeds
+        self.num_blocker = num_blocker
         self.blocker_seq = []
-
-        if isinstance(graph, nx.Graph):
-            self.seed_candidate = seed_candidate
-            self.blocker_candidate = np.array(list(filter(lambda x: deg(x, graph) >= blocker_min_deg, self.graph.nodes())))
-        elif isinstance(graph, nx.DiGraph):
-            self.seed_candidate = seed_candidate
-            self.blocker_candidate = np.array(list(filter(lambda x: deg(x, graph)[1] >= blocker_min_deg, self.graph.nodes())))
-        else:
-            raise TypeError(f'not supported for the input types: {type(graph)}')
 
     def _block_time_loss(self):
         """
@@ -67,25 +59,28 @@ class Env:
 
         return self.model.state
 
-    def step(self, blocker: Union[int, List] = None) -> Tuple[np.array, float, int]:
-        if blocker is None:
-            blocker = np.zeros(self.graph.number_of_nodes()).astype(np.bool_)
-        elif isinstance(blocker, (list, int)):
-            blocker = self.blocker_candidate[blocker]
-        else:
-            raise TypeError(f'not supported for the input types: {type(blocker)}')
+    def step(self, action: np.ndarray):
+        action = action / np.sum(action)
+        np.random.choice(np.arange(action.shape[0]), self.num_blocker, p=)
 
-        try:
-            blocker_one_hot = np.zeros(self.model.num_nodes).astype(np.bool_)
-            blocker_one_hot[blocker] = 1
-            self.blocker_seq.append(blocker)
-            block_invalid_loss = self._block_invalid_loss(blocker_one_hot)  # 必须在演化之前执行
-            state, active = self.model.diffusion(blocker_one_hot)
-            reward = - np.sum(active) - self._block_time_loss() - block_invalid_loss
-            done = 0
-        except DiffusionEnd:
-            state = self.model.state
-            reward = 0
-            done = 1
+        # if blocker is None:
+        #     blocker = np.zeros(self.graph.number_of_nodes()).astype(np.bool_)
+        # elif isinstance(blocker, (list, int)):
+        #     blocker = self.blocker_candidate[blocker]
+        # else:
+        #     raise TypeError(f'not supported for the input types: {type(blocker)}')
+        #
+        # try:
+        #     blocker_one_hot = np.zeros(self.model.num_nodes).astype(np.bool_)
+        #     blocker_one_hot[blocker] = 1
+        #     self.blocker_seq.append(blocker)
+        #     block_invalid_loss = self._block_invalid_loss(blocker_one_hot)  # 必须在演化之前执行
+        #     state, active = self.model.diffusion(blocker_one_hot)
+        #     reward = - np.sum(active) - self._block_time_loss() - block_invalid_loss
+        #     done = 0
+        # except DiffusionEnd:
+        #     state = self.model.state
+        #     reward = 0
+        #     done = 1
 
-        return state, reward, done
+        # return state, reward, done

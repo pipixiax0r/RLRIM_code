@@ -36,14 +36,14 @@ class Env:
         """
         if len(self.blocker_seq) < 2:
             return 0
-        return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-2:]))*2
+        return len(reduce(lambda x, y: set(x) & set(y), self.blocker_seq[-2:]))
 
-    def _block_invalid_loss(self, blocker_one_hot):
+    def _block_valid_reward(self, blocker_one_hot):
         """
-        预测节点无效时的损失
+        预测节点有效时的奖励
         """
         valid_blocker = self.valid_blocker()
-        return np.sum(blocker_one_hot & (~valid_blocker)) - np.sum(blocker_one_hot & valid_blocker)*0.5
+        return np.sum(blocker_one_hot & valid_blocker)
 
     def valid_blocker(self):
         try:
@@ -80,9 +80,9 @@ class Env:
             blocker_one_hot = np.zeros(self.model.num_nodes).astype(np.bool_)
             blocker_one_hot[blocker] = 1
             self.blocker_seq.append(blocker)
-            block_invalid_loss = self._block_invalid_loss(blocker_one_hot)  # 必须在演化之前执行
+            block_invalid_loss = self._block_valid_reward(blocker_one_hot)  # 必须在演化之前执行
             state, active = self.model.diffusion(blocker_one_hot)
-            reward = - np.sum(active) - self._block_time_loss() - block_invalid_loss
+            reward = - np.sum(active) - self._block_time_loss()*2 + block_invalid_loss*3
             done = 0
         except DiffusionEnd:
             state = self.model.state
